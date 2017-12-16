@@ -1,0 +1,11 @@
+[package]
+name = "dsj"
+version = "0.1.0"
+authors = ["alexey <piyanin@gmail.com>"]
+
+[dependencies]
+diesel = { version = "1.0.0-beta1", features = ["sqlite", "postgres", "mysql"] }
+diesel_infer_schema = { version = "1.0.0-beta1", features = ["sqlite", "postgres", "mysql"] }
+diesel_migrations = "1.0.0-beta1"
+dotenv = "0.10"
+failure = "0.1.1"

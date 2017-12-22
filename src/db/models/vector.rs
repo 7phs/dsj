@@ -1,9 +1,9 @@
 use diesel::{self};
 use diesel::prelude::*;
 
-use connection::DsjConnection;
-use schema::vectors;
-use models::word::Word;
+use db::connection::DsjConnection;
+use db::schema::vectors;
+use db::models::word::Word;
 
 #[derive(Debug, Insertable, Queryable, PartialEq)]
 #[table_name = "vectors"]
@@ -21,10 +21,19 @@ impl Vector {
             point,
         }
     }
+
+    pub fn from_vec(word: &Word, points: &[f32]) -> Vec<Vector> {
+        points.into_iter()
+            .enumerate()
+            .map(|(position, &point)|
+                Vector::new(&word, position as i32, point)
+            )
+            .collect()
+    }
 }
 
 pub fn add_vectors(conn: &DsjConnection, new_vectors: &[Vector]) -> usize {
-    use schema::vectors::dsl::vectors;
+    use db::schema::vectors::dsl::vectors;
 
     match diesel::insert_into(vectors)
         .values(new_vectors)
@@ -38,7 +47,7 @@ pub fn add_vectors(conn: &DsjConnection, new_vectors: &[Vector]) -> usize {
 }
 
 pub fn word_2_vector(conn: &DsjConnection, word: &Word) -> Option<Vec<f32>> {
-    use schema::vectors::dsl::{vectors, word_id, position};
+    use db::schema::vectors::dsl::{vectors, word_id, position};
 
     match vectors
         .filter(word_id.eq(word.id))

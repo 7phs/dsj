@@ -1,12 +1,18 @@
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
-use dotenv::dotenv;
-use std::env;
 
-pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
+embed_migrations!("migrations/sqlite");
 
-    let database_url: String = env::var("SQLITE_DATABASE_URL").expect("SQLITE_DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", &database_url))
+pub fn run_migration(connection: &SqliteConnection) -> Result<(), String> {
+    match embedded_migrations::run_with_output(connection, &mut ::std::io::stdout()) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(format!("Error make migrations {:?}", err)),
+    }
+}
+
+pub fn establish_connection(database_url: &str) -> Result<SqliteConnection, String> {
+    match SqliteConnection::establish(database_url) {
+        Ok(conn) => Ok(conn),
+        Err(err) => Err(format!("Error connecting to {} with {:?}", database_url, err)),
+    }
 }

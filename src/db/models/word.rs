@@ -1,8 +1,8 @@
 use diesel::{self};
 use diesel::prelude::*;
 
-use connection::DsjConnection;
-use schema::words;
+use db::connection::DsjConnection;
+use db::schema::words;
 
 #[derive(Debug, Queryable, PartialEq, Clone)]
 pub struct Word {
@@ -26,7 +26,7 @@ pub struct NewWord<'a> {
 }
 
 pub fn create_word<'a>(conn: &DsjConnection, w: &'a str) -> Option<Word> {
-    use schema::words::dsl::words;
+    use db::schema::words::dsl::words;
 
     let new_word = NewWord {
         word: w,
@@ -42,7 +42,7 @@ pub fn create_word<'a>(conn: &DsjConnection, w: &'a str) -> Option<Word> {
 }
 
 pub fn get_word<'a>(conn: &DsjConnection, w: &'a str) -> Option<Word> {
-    use schema::words::dsl::{words, word};
+    use db::schema::words::dsl::{words, word};
 
     match words.filter(word.eq(w))
         .load::<Word>(conn) {
@@ -55,10 +55,46 @@ pub fn get_word<'a>(conn: &DsjConnection, w: &'a str) -> Option<Word> {
 }
 
 pub fn words_list(conn: &DsjConnection) -> Option<Vec<Word>> {
-    use schema::words::dsl::words;
+    use db::schema::words::dsl::words;
 
     match words.load::<Word>(conn) {
         Ok(stmt) => Some(stmt),
         Err(_) => None,
+    }
+}
+
+#[cfg(test)]
+mod testing {
+    #[test]
+    fn test() {
+//        {
+//            let words = create_word(&connection, "привет");
+//
+//            println!("create_word:1: {:?}", words);
+//
+//            let words = create_word(&connection, "свидания");
+//
+//            println!("create_word:2: {:?}", words);
+//
+//            let words = words_list(&connection);
+//
+//            println!("words: {:?}", words);
+//        }
+//
+//        {
+//            let word = get_word(&connection, "привет").unwrap();
+//
+//            let vectors = Vector::from_vec(&word, &vec![
+//                0.15f32, 14.15, 23.78, 109.0192
+//            ]);
+//
+//            let insert_count = add_vectors(&connection, &vectors);
+//
+//            println!("add_vector:1: {:?}", insert_count);
+//
+//            let vector = word_2_vector(&connection, &word);
+//
+//            println!("vector: {:?}", vector);
+//        }
     }
 }

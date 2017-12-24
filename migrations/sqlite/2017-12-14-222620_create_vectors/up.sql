@@ -1,4 +1,3 @@
--- Your SQL goes here
 CREATE TABLE IF NOT EXISTS vectors (
     word_id INTEGER NOT NULL,
     position INTEGER NOT NULL,

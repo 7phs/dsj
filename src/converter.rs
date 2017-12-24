@@ -1,5 +1,6 @@
 use db::connection::{DsjConnection, establish_connection, run_migrations};
 use db::models::word::create_word;
+use db::models::kind::create_kind;
 use db::models::vector::{Vector, add_vectors};
 use wordvector::dataiterator::DataIterator;
 
@@ -22,9 +23,11 @@ impl Converter {
 
     pub fn convert(&self, data_iterator: &mut [DataIterator]) -> Result<(), String> {
         for data in data_iterator {
-            for record in data.iter() {
-                if let Some(word) = create_word(&self.connection, &record.word) {
-                    add_vectors(&self.connection, &Vector::from_vec(&word, &record.vec));
+            if let Some(kind) = create_kind(&self.connection, data.kind()) {
+                for record in data.iter() {
+                    if let Some(word) = create_word(&self.connection, &record.word) {
+                        add_vectors(&self.connection, &Vector::from_vec(&word, &kind, &record.vec));
+                    }
                 }
             }
         }

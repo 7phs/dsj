@@ -7,14 +7,14 @@ use db::schema::kinds;
 #[derive(Debug, Queryable, PartialEq, Clone)]
 pub struct Kind {
     pub id: i32,
-    pub kind: String,
+    pub name: String,
 }
 
 impl Default for Kind {
     fn default() -> Kind {
         Kind {
             id: 0,
-            kind: "".to_string(),
+            name: "".to_string(),
         }
     }
 }
@@ -22,14 +22,14 @@ impl Default for Kind {
 #[derive(Debug, Insertable, PartialEq)]
 #[table_name = "kinds"]
 pub struct NewKind<'a> {
-    pub kind: &'a str,
+    pub name: &'a str,
 }
 
-pub fn create_kind<'a>(conn: &DsjConnection, k: &'a str) -> Option<Kind> {
+pub fn create_kind<'a>(conn: &DsjConnection, n: &'a str) -> Option<Kind> {
     use db::schema::kinds::dsl::kinds;
 
     let new_kind = NewKind {
-        kind: k,
+        name: n,
     };
 
     if let Err(err) = diesel::insert_into(kinds)
@@ -38,17 +38,17 @@ pub fn create_kind<'a>(conn: &DsjConnection, k: &'a str) -> Option<Kind> {
         println!("failed to insert {:?} with {:?}", new_kind, err);
     }
 
-    get_kind(&conn, k)
+    get_kind(&conn, n)
 }
 
-pub fn get_kind<'a>(conn: &DsjConnection, k: &'a str) -> Option<Kind> {
-    use db::schema::kinds::dsl::{kinds, kind};
+pub fn get_kind<'a>(conn: &DsjConnection, n: &'a str) -> Option<Kind> {
+    use db::schema::kinds::dsl::{kinds, name};
 
-    match kinds.filter(kind.eq(k))
+    match kinds.filter(name.eq(n))
         .load::<Kind>(conn) {
         Ok(res) => Some(res.first()?.clone()),
         Err(err) => {
-            println!("failed to get kind record for '{}' {:?}", k, err);
+            println!("failed to get kind record for '{}' {:?}", n, err);
             None
         }
     }
@@ -60,41 +60,5 @@ pub fn kinds_list(conn: &DsjConnection) -> Option<Vec<Kind>> {
     match kinds.load::<Kind>(conn) {
         Ok(stmt) => Some(stmt),
         Err(_) => None,
-    }
-}
-
-#[cfg(test)]
-mod testing {
-    #[test]
-    fn test() {
-//        {
-//            let words = create_word(&connection, "привет");
-//
-//            println!("create_word:1: {:?}", words);
-//
-//            let words = create_word(&connection, "свидания");
-//
-//            println!("create_word:2: {:?}", words);
-//
-//            let words = words_list(&connection);
-//
-//            println!("words: {:?}", words);
-//        }
-//
-//        {
-//            let word = get_word(&connection, "привет").unwrap();
-//
-//            let vectors = Vector::from_vec(&word, &vec![
-//                0.15f32, 14.15, 23.78, 109.0192
-//            ]);
-//
-//            let insert_count = add_vectors(&connection, &vectors);
-//
-//            println!("add_vector:1: {:?}", insert_count);
-//
-//            let vector = word_2_vector(&connection, &word);
-//
-//            println!("vector: {:?}", vector);
-//        }
     }
 }

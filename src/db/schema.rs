@@ -8,7 +8,7 @@ table! {
 table! {
     kinds {
         id -> Integer,
-        kind -> VarChar,
+        name -> VarChar,
     }
 }
 

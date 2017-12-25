@@ -1,3 +1,4 @@
+#![feature(rand)]
 #![feature(test)]
 #![feature(universal_impl_trait)]
 
@@ -10,6 +11,9 @@ extern crate diesel_migrations;
 
 extern crate clap;
 extern crate test;
+
+#[cfg(test)]
+extern crate rand;
 
 mod args;
 mod converter;

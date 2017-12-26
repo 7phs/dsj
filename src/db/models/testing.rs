@@ -152,4 +152,24 @@ fn test_vectors() {
             }
         }
     }
+
+    for ref kind in stored_kinds.iter() {
+        for ref word in stored_words.iter() {
+            let exist_vec = match word_2_vector(&connection, &word, &kind) {
+                Some(vec) => vec,
+                None => {
+                    assert!(false, "failed to get a vector for {:?} under {:?}", word, kind);
+                    continue;
+                }
+            };
+
+            let key = (kind.name.to_string(), word.word.to_string());
+
+            if let Some(expected_vec) = data.get(&key) {
+                assert_eq!(&exist_vec, expected_vec, "check vec");
+            } else {
+                assert!(false, "data doesn't found in a test cache");
+            }
+        }
+    }
 }

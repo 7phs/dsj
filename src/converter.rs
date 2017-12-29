@@ -21,13 +21,11 @@ impl Converter {
         run_migrations(&self.connection)
     }
 
-    pub fn convert(&self, data_iterator: &mut [DataIterator]) -> Result<(), String> {
-        for data in data_iterator {
-            if let Some(kind) = create_kind(&self.connection, data.kind()) {
-                for record in data.iter() {
-                    if let Some(word) = create_word(&self.connection, &record.word) {
-                        add_vectors(&self.connection, &Vector::from_vec(&word, &kind, &record.vec));
-                    }
+    pub fn convert(&self, data_iterator: &mut DataIterator) -> Result<(), String> {
+        if let Some(kind) = create_kind(&self.connection, data_iterator.kind()) {
+            for record in data_iterator.iter() {
+                if let Some(word) = create_word(&self.connection, &record.word) {
+                    add_vectors(&self.connection, &Vector::from_vec(&word, &kind, &record.vec));
                 }
             }
         }

@@ -1,3 +1,4 @@
+#![feature(integer_atomics)]
 #![feature(rand)]
 #![feature(test)]
 #![feature(universal_impl_trait)]
@@ -10,6 +11,7 @@ extern crate diesel_infer_schema;
 extern crate diesel_migrations;
 
 extern crate clap;
+extern crate indicatif;
 extern crate test;
 
 #[cfg(test)]
@@ -17,29 +19,48 @@ extern crate rand;
 
 mod args;
 mod converter;
-mod data;
 mod db;
+mod progressbar;
 mod wordvector;
+
+#[cfg(feature = "dumb")]
+mod data;
+
+use std::rc::Rc;
+use args::Args;
+use converter::Converter;
+use progressbar::Progress;
+use wordvector::dataiterator::DataIterator;
+use wordvector::VectorFile;
+
+fn convert_process(converter: Converter, vector_files: &[VectorFile]) {
+    converter.prepare();
+
+    let progress_signal = Rc::new(Progress::start());
+    let data_iterators = DataIterator::make_vec(progress_signal.clone(), vector_files);
+
+    progress_signal.init(data_iterators.len() as u64);
+
+    data_iterators.into_iter()
+        .for_each(|mut data_iter| {
+            progress_signal.start(data_iter.kind(), 100);
+
+            converter.convert(&mut data_iter);
+        });
+}
 
 fn main() {
     #[cfg(feature = "dumb")]
         data::test("test.data");
 
-    let mut arg = args::Args::default();
+    let mut arg = Args::default();
 
     if arg.is_incomplete() {
         arg.print_help();
     } else {
-        match converter::Converter::new(arg.database_uri().unwrap()) {
-            Ok(converter) => {
-                converter.prepare();
-
-                let mut data_iter = wordvector::dataiterator::DataIterator::make_vec(arg.file_path().unwrap());
-                converter.convert(&mut data_iter);
-            }
-            Err(err) => {
-                println!("failed to initialise a converter with {:?}", err);
-            }
+        match Converter::new(arg.database_uri().unwrap()) {
+            Ok(converter) => convert_process(converter, arg.file_path().unwrap()),
+            Err(err) => println!("failed to initialise a converter with {:?}", err),
         }
     }
 }

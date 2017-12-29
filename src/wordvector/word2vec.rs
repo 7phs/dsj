@@ -1,29 +1,56 @@
-use std::io::{BufRead, Lines};
+use std::io::BufRead;
 use std::rc::Rc;
 
 use wordvector::{Record, Iter};
+use progressbar::IncSignal;
 
 pub struct Word2Vec<T>
     where T: BufRead + Sized
 {
-    lines: Lines<T>,
+    reader: T,
+    signal: Option<Rc<IncSignal>>,
+    buf: Vec<u8>,
+    delimiter: u8,
 }
 
 impl<T: 'static> Word2Vec<T>
     where T: BufRead + Sized
 {
-    pub fn new(reader: T) -> Word2Vec<T> {
-        let mut lines = reader.lines();
+    pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> Word2Vec<T> {
+        let mut word2vec = Word2Vec {
+            reader,
+            signal,
+            buf: Vec::new(),
+            delimiter: b'\n',
+        };
 
-        // skip the first line contained meta information
-        let _ = lines.next();
+        // skip line
+        let _ = word2vec.read_line();
 
-        Word2Vec {
-            lines
+        word2vec
+    }
+
+    fn read_line(&mut self) -> Option<Record> {
+        self.buf.clear();
+
+        match self.reader.read_until(self.delimiter, &mut self.buf) {
+            Ok(0) => None,
+            Ok(delta) => {
+                self.inc(delta);
+
+                if self.buf[self.buf.len() - 1] == self.delimiter {
+                    self.buf.pop();
+                }
+
+                Some(self.parse(&self.buf))
+            }
+            Err(_) => None
         }
     }
 
-    fn parse(&self, line: &str) -> Record {
+    fn parse(&self, line: &[u8]) -> Record {
+        let line = String::from_utf8_lossy(line);
+
         let mut parser = line
             .split_whitespace();
 
@@ -39,6 +66,12 @@ impl<T: 'static> Word2Vec<T>
         Record::new(word, &weights)
     }
 
+    fn inc(&self, delta: usize) {
+        if let Some(ref signal) = self.signal {
+            signal.inc(delta as u64);
+        }
+    }
+
     pub fn into_iter(self) -> Iter {
         Iter {
             iter: Rc::new(self)
@@ -52,10 +85,7 @@ impl<T: 'static> Iterator for Word2Vec<T>
     type Item = Record;
 
     fn next(&mut self) -> Option<Record> {
-        match self.lines.next()? {
-            Ok(line) => Some(self.parse(&line)),
-            Err(_) => None,
-        }
+        self.read_line()
     }
 }
 
@@ -64,6 +94,7 @@ mod testing {
     use super::*;
     use std::fs::File;
     use std::io::{BufReader, Cursor};
+    use wordvector::testing::TestIncCounter;
 
     fn test_word2vec_iter(iter: &mut Iter) {
         match iter.next() {
@@ -127,9 +158,20 @@ mod testing {
     fn test_word2vec_buffer_iter() {
         let test_data = include_str!("../../test/data/word2vec.txt");
 
-        test_word2vec_iter(&mut Word2Vec::new(BufReader::new(Cursor::new(test_data))).into_iter());
+        let expected_data_len = test_data.as_bytes().len() as u64;
+        let exist_counter = Rc::new(TestIncCounter::default());
 
-        test_word2vec_iter_count(&mut Word2Vec::new(BufReader::new(Cursor::new(test_data))).into_iter());
+        test_word2vec_iter(&mut Word2Vec::new(
+            BufReader::new(Cursor::new(test_data)),
+            Some(exist_counter.clone()),
+        ).into_iter());
+
+        assert_eq!(exist_counter.value(), expected_data_len, "check counter");
+
+        test_word2vec_iter_count(&mut Word2Vec::new(
+            BufReader::new(Cursor::new(test_data)),
+            None,
+        ).into_iter());
     }
 
     #[test]
@@ -138,14 +180,20 @@ mod testing {
 
         match File::open(&file_name) {
             Ok(file) => {
-                test_word2vec_iter(&mut Word2Vec::new(BufReader::new(file)).into_iter());
+                test_word2vec_iter(&mut Word2Vec::new(
+                    BufReader::new(file),
+                    None,
+                ).into_iter());
             }
             Err(err) => assert!(false, "failed to open file '{}' to test iter values with {:?}", &file_name, err),
         }
 
         match File::open(&file_name) {
             Ok(file) => {
-                test_word2vec_iter_count(&mut Word2Vec::new(BufReader::new(file)).into_iter());
+                test_word2vec_iter_count(&mut Word2Vec::new(
+                    BufReader::new(file),
+                    None,
+                ).into_iter());
             }
             Err(err) => assert!(false, "failed to open file '{}' to test iter count with {:?}", &file_name, err),
         }

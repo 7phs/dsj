@@ -23,6 +23,7 @@ impl<'a> Default for Args<'a> {
             .about("Convert a word vector file (fasttext, glove, word2vec, gensim) to DB")
             .arg(Arg::with_name("db_uri")
                 .short("db")
+                .long("db")
                 .takes_value(true)
                 .default_value("wordvector.db")
                 .help("path to result database"));
@@ -51,7 +52,7 @@ impl<'a> Default for Args<'a> {
             },
             Argument {
                 name: "word2vec/gensim",
-                short: "gm",
+                short: "t",
                 long: "gensim",
                 help: "word2vec word vector text file with gensim format (*.tsv)",
                 file_path: VectorFile::Gensim,
@@ -108,6 +109,7 @@ impl<'a> Args<'a> {
 
     pub fn print_help(&mut self) {
         self.app.print_help();
+        println!();
     }
 
     pub fn file_path(&self) -> Option<&[VectorFile]> {

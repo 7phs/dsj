@@ -4,6 +4,9 @@ mod gensim;
 mod glove;
 mod word2vec;
 
+#[cfg(test)]
+mod testing;
+
 use std::rc::Rc;
 
 #[derive(Clone)]
@@ -43,7 +46,7 @@ impl Iterator for Iter {
 
 
 #[cfg(test)]
-mod testing {
+mod localtesting {
     use super::*;
 
     #[test]

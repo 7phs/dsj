@@ -1,20 +1,45 @@
-use std::io::{BufRead, Cursor, Split};
+use std::io::{BufRead, Cursor};
 use std::rc::Rc;
 
 use wordvector::{Record, Iter};
+use progressbar::IncSignal;
 
 pub struct Gensim<T>
     where T: BufRead + Sized
 {
-    split: Split<T>,
+    reader: T,
+    signal: Option<Rc<IncSignal>>,
+    buf: Vec<u8>,
+    delimiter: u8,
 }
 
 impl<T: 'static> Gensim<T>
     where T: BufRead + Sized
 {
-    pub fn new(reader: T) -> Gensim<T> {
+    pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> Gensim<T> {
         Gensim {
-            split: reader.split(b']')
+            reader,
+            signal,
+            buf: Vec::new(),
+            delimiter: b']',
+        }
+    }
+
+    fn read_line(&mut self) -> Option<Record> {
+        self.buf.clear();
+
+        match self.reader.read_until(self.delimiter, &mut self.buf) {
+            Ok(0) => None,
+            Ok(delta) => {
+                self.inc(delta);
+
+                if self.buf[self.buf.len() - 1] == self.delimiter {
+                    self.buf.pop();
+                }
+
+                Some(self.parse(&self.buf))
+            }
+            Err(_) => None
         }
     }
 
@@ -53,6 +78,12 @@ impl<T: 'static> Gensim<T>
         Record::new(word, &weights)
     }
 
+    fn inc(&self, delta: usize) {
+        if let Some(ref signal) = self.signal {
+            signal.inc(delta as u64);
+        }
+    }
+
     pub fn into_iter(self) -> Iter {
         Iter {
             iter: Rc::new(self)
@@ -66,10 +97,7 @@ impl<T: 'static> Iterator for Gensim<T>
     type Item = Record;
 
     fn next(&mut self) -> Option<Record> {
-        match self.split.next()? {
-            Ok(line) => Some(self.parse(&line)),
-            Err(_) => None,
-        }
+        self.read_line()
     }
 }
 
@@ -78,6 +106,7 @@ mod testing {
     use super::*;
     use std::fs::File;
     use std::io::BufReader;
+    use wordvector::testing::TestIncCounter;
 
     fn test_gensim_iter(iter: &mut Iter) {
         match iter.next() {
@@ -141,9 +170,20 @@ mod testing {
     fn test_gensim_buffer_iter() {
         let test_data = include_str!("../../test/data/gensim.tsv");
 
-        test_gensim_iter(&mut Gensim::new(BufReader::new(Cursor::new(test_data))).into_iter());
+        let expected_data_len = test_data.as_bytes().len() as u64;
+        let exist_counter = Rc::new(TestIncCounter::default());
 
-        test_gensim_iter_count(&mut Gensim::new(BufReader::new(Cursor::new(test_data))).into_iter());
+        test_gensim_iter(&mut Gensim::new(
+            BufReader::new(Cursor::new(test_data)),
+            Some(exist_counter.clone()),
+        ).into_iter());
+
+        assert_eq!(exist_counter.value(), expected_data_len, "check counter");
+
+        test_gensim_iter_count(&mut Gensim::new(
+            BufReader::new(Cursor::new(test_data)),
+                None,
+        ).into_iter());
     }
 
     #[test]
@@ -152,14 +192,20 @@ mod testing {
 
         match File::open(&file_name) {
             Ok(file) => {
-                test_gensim_iter(&mut Gensim::new(BufReader::new(file)).into_iter());
+                test_gensim_iter(&mut Gensim::new(
+                    BufReader::new(file),
+                    None,
+                ).into_iter());
             }
             Err(err) => assert!(false, "failed to open file '{}' to test iter values with {:?}", &file_name, err),
         }
 
         match File::open(&file_name) {
             Ok(file) => {
-                test_gensim_iter_count(&mut Gensim::new(BufReader::new(file)).into_iter());
+                test_gensim_iter_count(&mut Gensim::new(
+                    BufReader::new(file),
+                    None,
+                ).into_iter());
             }
             Err(err) => assert!(false, "failed to open file '{}' to test iter count with {:?}", &file_name, err),
         }

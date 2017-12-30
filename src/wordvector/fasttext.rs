@@ -1,16 +1,14 @@
 use std::io::BufRead;
 use std::rc::Rc;
-
+use io::IteratorWithSignal;
 use wordvector::{Record, Iter};
 use progressbar::IncSignal;
 
 pub struct FastText<T>
     where T: BufRead + Sized
 {
-    reader: T,
+    iterator: IteratorWithSignal<T>,
     signal: Option<Rc<IncSignal>>,
-    buf: Vec<u8>,
-    delimiter: u8,
 }
 
 impl<T: 'static> FastText<T>
@@ -18,39 +16,19 @@ impl<T: 'static> FastText<T>
 {
     pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> FastText<T> {
         let mut fasttext = FastText {
-            reader,
+            iterator: IteratorWithSignal::new(reader, b'\n'),
             signal,
-            buf: Vec::new(),
-            delimiter: b'\n',
         };
 
-        // skip line
-        let _ = fasttext.read_line();
+        // skip the first line
+        if let Some((delta, _)) = fasttext.iterator.next() {
+            fasttext.inc(delta);
+        }
 
         fasttext
     }
 
-    fn read_line(&mut self) -> Option<Record> {
-        self.buf.clear();
-
-        match self.reader.read_until(self.delimiter, &mut self.buf) {
-            Ok(0) => None,
-            Ok(delta) => {
-                self.inc(delta);
-
-                if self.buf[self.buf.len() - 1] == self.delimiter {
-                    self.buf.pop();
-                }
-
-                Some(self.parse(&self.buf))
-            }
-            Err(_) => None
-        }
-    }
-
-    fn parse(&self, line: &[u8]) -> Record {
-        let line = String::from_utf8_lossy(line);
-
+    fn parse(&self, line: &str) -> Record {
         let mut parser = line
             .split_whitespace();
 
@@ -85,7 +63,11 @@ impl<T: 'static> Iterator for FastText<T>
     type Item = Record;
 
     fn next(&mut self) -> Option<Record> {
-        self.read_line()
+        let (delta, line) = self.iterator.next()?;
+
+        self.inc(delta);
+
+        Some(self.parse(&line))
     }
 }
 

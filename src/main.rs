@@ -20,6 +20,7 @@ extern crate rand;
 mod args;
 mod converter;
 mod db;
+mod io;
 mod progressbar;
 mod wordvector;
 

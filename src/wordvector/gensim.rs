@@ -3,14 +3,13 @@ use std::rc::Rc;
 
 use wordvector::{Record, Iter};
 use progressbar::IncSignal;
+use io::IteratorWithSignal;
 
 pub struct Gensim<T>
     where T: BufRead + Sized
 {
-    reader: T,
+    iterator: IteratorWithSignal<T>,
     signal: Option<Rc<IncSignal>>,
-    buf: Vec<u8>,
-    delimiter: u8,
 }
 
 impl<T: 'static> Gensim<T>
@@ -18,28 +17,8 @@ impl<T: 'static> Gensim<T>
 {
     pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> Gensim<T> {
         Gensim {
-            reader,
+            iterator: IteratorWithSignal::new(reader, b']'),
             signal,
-            buf: Vec::new(),
-            delimiter: b']',
-        }
-    }
-
-    fn read_line(&mut self) -> Option<Record> {
-        self.buf.clear();
-
-        match self.reader.read_until(self.delimiter, &mut self.buf) {
-            Ok(0) => None,
-            Ok(delta) => {
-                self.inc(delta);
-
-                if self.buf[self.buf.len() - 1] == self.delimiter {
-                    self.buf.pop();
-                }
-
-                Some(self.parse(&self.buf))
-            }
-            Err(_) => None
         }
     }
 
@@ -59,10 +38,8 @@ impl<T: 'static> Gensim<T>
             .collect()
     }
 
-    fn parse(&self, line: &[u8]) -> Record {
-        let line = String::from_utf8_lossy(line);
-
-        let mut reader = Cursor::new(line.as_ref());
+    fn parse(&self, line: &str) -> Record {
+        let mut reader = Cursor::new(line);
 
         let word = {
             let mut header_buf: Vec<u8> = vec![];
@@ -97,7 +74,11 @@ impl<T: 'static> Iterator for Gensim<T>
     type Item = Record;
 
     fn next(&mut self) -> Option<Record> {
-        self.read_line()
+        let (delta, line) = self.iterator.next()?;
+
+        self.inc(delta);
+
+        Some(self.parse(&line))
     }
 }
 

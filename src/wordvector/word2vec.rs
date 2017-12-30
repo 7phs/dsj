@@ -3,12 +3,12 @@ use std::rc::Rc;
 
 use wordvector::{Record, Iter};
 use progressbar::IncSignal;
-use io::IteratorWithSignal;
+use io::Pieces;
 
 pub struct Word2Vec<T>
     where T: BufRead + Sized
 {
-    iterator: IteratorWithSignal<T>,
+    iterator: Pieces<T>,
     signal: Option<Rc<IncSignal>>,
 }
 
@@ -17,7 +17,7 @@ impl<T: 'static> Word2Vec<T>
 {
     pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> Word2Vec<T> {
         let mut word2vec = Word2Vec {
-            iterator: IteratorWithSignal::new(reader, b'\n'),
+            iterator: Pieces::new(reader, b'\n'),
             signal,
         };
 

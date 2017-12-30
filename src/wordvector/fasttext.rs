@@ -1,13 +1,13 @@
 use std::io::BufRead;
 use std::rc::Rc;
-use io::IteratorWithSignal;
+use io::Pieces;
 use wordvector::{Record, Iter};
 use progressbar::IncSignal;
 
 pub struct FastText<T>
     where T: BufRead + Sized
 {
-    iterator: IteratorWithSignal<T>,
+    iterator: Pieces<T>,
     signal: Option<Rc<IncSignal>>,
 }
 
@@ -16,7 +16,7 @@ impl<T: 'static> FastText<T>
 {
     pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> FastText<T> {
         let mut fasttext = FastText {
-            iterator: IteratorWithSignal::new(reader, b'\n'),
+            iterator: Pieces::new(reader, b'\n'),
             signal,
         };
 

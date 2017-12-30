@@ -3,12 +3,12 @@ use std::rc::Rc;
 
 use wordvector::{Record, Iter};
 use progressbar::IncSignal;
-use io::IteratorWithSignal;
+use io::Pieces;
 
 pub struct Gensim<T>
     where T: BufRead + Sized
 {
-    iterator: IteratorWithSignal<T>,
+    iterator: Pieces<T>,
     signal: Option<Rc<IncSignal>>,
 }
 
@@ -17,7 +17,7 @@ impl<T: 'static> Gensim<T>
 {
     pub fn new(reader: T, signal: Option<Rc<IncSignal>>) -> Gensim<T> {
         Gensim {
-            iterator: IteratorWithSignal::new(reader, b']'),
+            iterator: Pieces::new(reader, b']'),
             signal,
         }
     }

@@ -1,6 +1,6 @@
 use std::io::BufRead;
 
-pub struct IteratorWithSignal<T>
+pub struct Pieces<T>
     where T: BufRead + Sized
 {
     reader: T,
@@ -8,11 +8,11 @@ pub struct IteratorWithSignal<T>
     delimiter: u8,
 }
 
-impl<T: 'static> IteratorWithSignal<T>
+impl<T: 'static> Pieces<T>
     where T: BufRead + Sized
 {
-    pub fn new(reader: T, delimiter: u8) -> IteratorWithSignal<T> {
-        IteratorWithSignal {
+    pub fn new(reader: T, delimiter: u8) -> Pieces<T> {
+        Pieces {
             reader,
             delimiter,
             buf: Vec::new(),
@@ -41,7 +41,7 @@ impl<T: 'static> IteratorWithSignal<T>
 }
 
 
-impl<T: 'static> Iterator for IteratorWithSignal<T>
+impl<T: 'static> Iterator for Pieces<T>
     where T: BufRead + Sized
 {
     type Item = (usize, String);

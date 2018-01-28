@@ -43,7 +43,6 @@ pub fn add_vectors(conn: &DsjConnection, new_vectors: &[Vector]) -> usize {
         .execute(conn) {
         Ok(count) => count,
         Err(err) => {
-            println!("failed to insert new vector {:?}", err);
             0
         }
     }

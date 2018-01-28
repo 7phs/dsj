@@ -32,11 +32,9 @@ pub fn create_kind<'a>(conn: &DsjConnection, n: &'a str) -> Option<Kind> {
         name: n,
     };
 
-    if let Err(err) = diesel::insert_into(kinds)
+    diesel::insert_into(kinds)
         .values(&new_kind)
-        .execute(conn) {
-        println!("failed to insert {:?} with {:?}", new_kind, err);
-    }
+        .execute(conn);
 
     get_kind(&conn, n)
 }

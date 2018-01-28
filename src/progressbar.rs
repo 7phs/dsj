@@ -1,4 +1,4 @@
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::sync::mpsc::{Sender, Receiver, RecvError, SendError, channel};
 use std::thread;
 
@@ -6,6 +6,7 @@ pub enum Stage {
     Init(u64),
     Start(String, u64),
     Inc(u64),
+    Finish(String),
     Stop,
 }
 
@@ -28,6 +29,10 @@ impl ProgressSignal {
 
     pub fn inc(&self, delta: u64) -> Result<(), SendError<Stage>> {
         self.tx.send(Stage::Inc(delta))
+    }
+
+    pub fn finish(&self, message: &str) -> Result<(), SendError<Stage>> {
+        self.tx.send(Stage::Finish(message.to_string()))
     }
 
     pub fn stop(&self) -> Result<(), SendError<Stage>> {
@@ -86,10 +91,16 @@ impl Progress{
                     progress_bar = ProgressBar::new(max);
                     progress_bar.set_prefix(&format!("[{}/{}]", self.index, self.stages));
                     progress_bar.set_message(&message);
+                    progress_bar.set_style(ProgressStyle::default_bar()
+                        .template("{prefix} {msg} {spinner:.green} [{elapsed_precise} / {eta}] [{bar:80.cyan/blue}] {percent}%")
+                        .progress_chars("#>-"));
                 },
                 Stage::Inc(delta) => {
                     progress_bar.inc(delta);
                 },
+                Stage::Finish(message) => {
+                    progress_bar.finish_with_message(&message);
+                }
                 Stage::Stop => break,
             }
         }

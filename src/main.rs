@@ -44,9 +44,11 @@ fn convert_process(converter: Converter, vector_files: &[VectorFile]) {
 
     data_iterators.into_iter()
         .for_each(|mut data_iter| {
-            progress_signal.start(data_iter.kind(), 100);
+            progress_signal.start(data_iter.kind(), data_iter.max());
 
             converter.convert(&mut data_iter);
+
+            progress_signal.finish(&format!("{}: done", data_iter.kind()));
         });
 }
 

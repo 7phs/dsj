@@ -2,4 +2,6 @@
 /target/
 **/*.rs.bk
 test.data
-test.db
+*.db
+*.db-journal
+run-convert.bash

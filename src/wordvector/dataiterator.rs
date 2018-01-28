@@ -12,6 +12,7 @@ macro_rules! file_iterator {
     ($kind: expr, $typ: ident, $file_path: ident, $signal: expr) => { match File::open(&$file_path) {
         Ok(file) => Some((
             $kind.to_string(),
+            file.metadata().unwrap().len(),
             $typ::new(BufReader::new(file), $signal).into_iter()
         )),
         Err(_) => None
@@ -20,6 +21,7 @@ macro_rules! file_iterator {
 
 pub struct DataIterator {
     kind: String,
+    max: u64,
     iterator: Iter,
 }
 
@@ -34,10 +36,11 @@ impl DataIterator {
                 &VectorFile::Unknown => None,
             };
 
-            let (kind, iterator) = result?;
+            let (kind, max, iterator) = result?;
 
             Some(DataIterator {
                 kind,
+                max,
                 iterator,
             })
         }).collect()
@@ -45,6 +48,10 @@ impl DataIterator {
 
     pub fn kind(&self) -> &str {
         &self.kind
+    }
+
+    pub fn max(&self) -> u64 {
+        self.max
     }
 
     pub fn iter(&mut self) -> &mut Iter {

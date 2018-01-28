@@ -47,8 +47,7 @@ pub fn get_word<'a>(conn: &DsjConnection, w: &'a str) -> Option<Word> {
     match words.filter(word.eq(w))
         .load::<Word>(conn) {
         Ok(res) => Some(res.first()?.clone()),
-        Err(err) => {
-            println!("failed to get word record for '{}' {:?}", w, err);
+        Err(_) => {
             None
         }
     }
